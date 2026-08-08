@@ -40,12 +40,12 @@ func TestBackend_RecordSuccessResetsFailures(t *testing.T) {
 	b, _ := NewBackend("b1", "http://localhost:9001", 1)
 	b.RecordFailure(5)
 	b.RecordFailure(5)
-	if b.Failures != 2 {
-		t.Errorf("expected 2 failures, got %d", b.Failures)
+	if b.Failures.Load() != 2 {
+		t.Errorf("expected 2 failures, got %d", b.Failures.Load())
 	}
 	b.RecordSuccess(10 * time.Millisecond)
-	if b.Failures != 0 {
-		t.Errorf("expected failures to reset to 0 after success, got %d", b.Failures)
+	if b.Failures.Load() != 0 {
+		t.Errorf("expected failures to reset to 0 after success, got %d", b.Failures.Load())
 	}
 }
 

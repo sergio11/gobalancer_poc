@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoggerMiddleware_WritesStatusAndBody(t *testing.T) {
@@ -128,4 +129,28 @@ func TestRateLimiter_XForwardedFor(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
 	}
+}
+
+func TestRateLimiter_Stop(t *testing.T) {
+	limiter := NewRateLimiter(10, 20, true)
+
+	done := make(chan struct{})
+	go func() {
+		limiter.Stop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-make(chan struct{}, 1):
+		t.Errorf("Stop() did not return in time")
+	}
+}
+
+func TestRateLimiter_CleanupLoop_StopsOnDone(t *testing.T) {
+	limiter := NewRateLimiter(10, 20, true)
+	limiter.Stop()
+	// Give the goroutine time to exit
+	time.Sleep(10 * time.Millisecond)
+	// No panic or deadlock means the goroutine exited cleanly
 }

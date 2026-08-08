@@ -61,8 +61,8 @@ func (api *AdminAPI) HandleGetBackends(w http.ResponseWriter, r *http.Request) {
 			Weight:            b.Weight,
 			ActiveConnections: b.GetConnections(),
 			LatencyMs:         b.Latency.Milliseconds(),
-			Failures:          b.Failures,
-			Successes:         b.Successes,
+			Failures:          b.Failures.Load(),
+			Successes:         b.Successes.Load(),
 			LastHealthCheck:   b.LastHealthCheck,
 		})
 	}

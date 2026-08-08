@@ -9,15 +9,26 @@ import (
 	"gobalancer/internal/backend"
 	"gobalancer/internal/balancer"
 	"gobalancer/internal/logger"
+	"gobalancer/internal/metrics"
 )
 
 type ReverseProxy struct {
-	balancer balancer.Balancer
+	balancer    balancer.Balancer
+	metrics     *metrics.MetricsService
+	maxFailures int
+	transport   *http.Transport
 }
 
-func NewReverseProxy(b balancer.Balancer) *ReverseProxy {
+func NewReverseProxy(b balancer.Balancer, m *metrics.MetricsService, maxFailures int) *ReverseProxy {
 	return &ReverseProxy{
-		balancer: b,
+		balancer:    b,
+		metrics:     m,
+		maxFailures: maxFailures,
+		transport: &http.Transport{
+			ResponseHeaderTimeout: 10 * time.Second,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+		},
 	}
 }
 
@@ -26,8 +37,15 @@ func (rp *ReverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log := logger.Get()
 		log.Error("No healthy backend available", "path", req.URL.Path, "error", err)
+		if rp.metrics != nil {
+			rp.metrics.IncErrors()
+		}
 		http.Error(w, "Service Unavailable: No healthy backends", http.StatusServiceUnavailable)
 		return
+	}
+
+	if rp.metrics != nil {
+		rp.metrics.IncRequests()
 	}
 
 	targetBackend.IncConnections()
@@ -64,19 +82,13 @@ func (rp *ReverseProxy) createHttpProxy(b *backend.Backend) *httputil.ReversePro
 			"url", b.URL.String(),
 			"error", err,
 		)
-		b.RecordFailure(3)
+		b.RecordFailure(int64(rp.maxFailures))
 		http.Error(w, fmt.Sprintf("Bad Gateway: %v", err), http.StatusBadGateway)
-	}
-
-	transport := &http.Transport{
-		ResponseHeaderTimeout: 10 * time.Second,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
 	}
 
 	return &httputil.ReverseProxy{
 		Director:      director,
 		ErrorHandler:  errorHandler,
-		Transport:     transport,
+		Transport:     rp.transport,
 	}
 }

@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -81,8 +80,8 @@ func TestE2E_LoadBalancerTrafficDistributionAndFailover(t *testing.T) {
 	checker := health.NewHealthChecker(pool, hcCfg)
 
 	balEngine, _ := balancer.NewBalancer("round-robin", pool)
-	revProxy := proxy.NewReverseProxy(balEngine)
 	metricsSvc := metrics.NewMetricsService(pool)
+	revProxy := proxy.NewReverseProxy(balEngine, metricsSvc, 3)
 	adminAPI := api.NewAdminAPI(pool, "", nil)
 
 	mux := http.NewServeMux()

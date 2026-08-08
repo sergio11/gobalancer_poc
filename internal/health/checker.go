@@ -81,7 +81,7 @@ func (hc *HealthChecker) CheckBackend(ctx context.Context, b *backend.Backend) {
 			"backend_id", b.ID,
 			"url", healthURL,
 			"status", b.GetStatus(),
-			"failures", b.Failures,
+			"failures", b.Failures.Load(),
 		)
 		return
 	}

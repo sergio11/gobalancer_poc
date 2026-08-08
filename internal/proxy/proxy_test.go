@@ -9,6 +9,7 @@ import (
 	"gobalancer/internal/backend"
 	"gobalancer/internal/balancer"
 	"gobalancer/internal/config"
+	"gobalancer/internal/metrics"
 )
 
 func TestReverseProxy_ForwardsRequest(t *testing.T) {
@@ -23,7 +24,7 @@ func TestReverseProxy_ForwardsRequest(t *testing.T) {
 
 	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: backendServer.URL, Weight: 1}})
 	bal := balancer.NewRoundRobin(pool)
-	rp := NewReverseProxy(bal)
+	rp := NewReverseProxy(bal, nil, 3)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 	req.Header.Set("X-Custom-Header", "my-value")
@@ -46,7 +47,7 @@ func TestReverseProxy_NoHealthyBackends(t *testing.T) {
 	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: "http://localhost:19999", Weight: 1}})
 	pool.GetBackends()[0].SetStatus(backend.StatusUnhealthy)
 
-	rp := NewReverseProxy(balancer.NewRoundRobin(pool))
+	rp := NewReverseProxy(balancer.NewRoundRobin(pool), nil, 3)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	rp.ServeHTTP(rr, req)
@@ -60,7 +61,7 @@ func TestReverseProxy_ErrorHandler_ConnectionRefused(t *testing.T) {
 	// Points to an unreachable port to trigger ReverseProxy ErrorHandler
 	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: "http://127.0.0.1:59999", Weight: 1}})
 	bal := balancer.NewRoundRobin(pool)
-	rp := NewReverseProxy(bal)
+	rp := NewReverseProxy(bal, nil, 3)
 
 	req := httptest.NewRequest(http.MethodGet, "/fail", nil)
 	rr := httptest.NewRecorder()
@@ -70,8 +71,8 @@ func TestReverseProxy_ErrorHandler_ConnectionRefused(t *testing.T) {
 	if rr.Code != http.StatusBadGateway {
 		t.Errorf("expected 502 Bad Gateway from error handler, got %d", rr.Code)
 	}
-	if pool.GetBackends()[0].Failures != 1 {
-		t.Errorf("expected backend failure count to be 1, got %d", pool.GetBackends()[0].Failures)
+	if pool.GetBackends()[0].Failures.Load() != 1 {
+		t.Errorf("expected backend failure count to be 1, got %d", pool.GetBackends()[0].Failures.Load())
 	}
 }
 
@@ -86,7 +87,7 @@ func TestReverseProxy_XForwardedFor_Appended(t *testing.T) {
 	defer backendServer.Close()
 
 	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: backendServer.URL, Weight: 1}})
-	rp := NewReverseProxy(balancer.NewRoundRobin(pool))
+	rp := NewReverseProxy(balancer.NewRoundRobin(pool), nil, 3)
 
 	// Request already has X-Forwarded-For -> should append
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -97,5 +98,41 @@ func TestReverseProxy_XForwardedFor_Appended(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestReverseProxy_MetricsIncremented(t *testing.T) {
+	backendServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backendServer.Close()
+
+	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: backendServer.URL, Weight: 1}})
+	bal := balancer.NewRoundRobin(pool)
+	m := metrics.NewMetricsService(pool)
+	rp := NewReverseProxy(bal, m, 3)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+	rp.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestReverseProxy_MetricsErrorIncremented(t *testing.T) {
+	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: "http://localhost:19999", Weight: 1}})
+	pool.GetBackends()[0].SetStatus(backend.StatusUnhealthy)
+	bal := balancer.NewRoundRobin(pool)
+	m := metrics.NewMetricsService(pool)
+	rp := NewReverseProxy(bal, m, 3)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	rp.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected 503, got %d", rr.Code)
 	}
 }

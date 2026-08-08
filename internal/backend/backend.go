@@ -21,8 +21,8 @@ type Backend struct {
 	Weight            int
 	ActiveConnections int64
 	Latency           time.Duration
-	Failures          int64
-	Successes         int64
+	Failures          atomic.Int64
+	Successes         atomic.Int64
 	LastHealthCheck   time.Time
 	mu                sync.RWMutex
 }
@@ -75,20 +75,20 @@ func (b *Backend) IsHealthy() bool {
 }
 
 func (b *Backend) RecordSuccess(latency time.Duration) {
+	b.Successes.Add(1)
+	b.Failures.Store(0)
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.Successes++
-	b.Failures = 0
 	b.Latency = latency
 	b.Status = StatusHealthy
 	b.LastHealthCheck = time.Now()
 }
 
 func (b *Backend) RecordFailure(maxFailures int64) {
+	b.Failures.Add(1)
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.Failures++
-	if b.Failures >= maxFailures {
+	if b.Failures.Load() >= maxFailures {
 		b.Status = StatusUnhealthy
 	}
 	b.LastHealthCheck = time.Now()

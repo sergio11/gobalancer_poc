@@ -17,6 +17,7 @@ type RateLimiter struct {
 	clients    map[string]*clientBucket
 	mu         sync.Mutex
 	enabled    bool
+	done       chan struct{}
 }
 
 func NewRateLimiter(rate float64, capacity float64, enabled bool) *RateLimiter {
@@ -25,6 +26,7 @@ func NewRateLimiter(rate float64, capacity float64, enabled bool) *RateLimiter {
 		capacity: capacity,
 		clients:  make(map[string]*clientBucket),
 		enabled:  enabled,
+		done:     make(chan struct{}),
 	}
 
 	// Periodically cleanup inactive clients
@@ -90,9 +92,19 @@ func (rl *RateLimiter) cleanup() {
 
 func (rl *RateLimiter) cleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
-	for range ticker.C {
-		rl.cleanup()
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			rl.cleanup()
+		case <-rl.done:
+			return
+		}
 	}
+}
+
+func (rl *RateLimiter) Stop() {
+	close(rl.done)
 }
 
 func getClientIP(r *http.Request) string {
