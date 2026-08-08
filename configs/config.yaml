@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+loadBalancer:
+  algorithm: round-robin
+
+healthCheck:
+  interval: 5s
+  timeout: 2s
+  maxFailures: 3
+
+backends:
+  - url: http://localhost:9001
+    weight: 5
+  - url: http://localhost:9002
+    weight: 3
+  - url: http://localhost:9003
+    weight: 1
