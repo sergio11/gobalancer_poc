@@ -3,6 +3,7 @@
 
 GOLANG_IMAGE = "docker.io/library/golang:1.24-alpine"
 PROJECT_DIR = File.expand_path(__dir__)
+MIN_COVERAGE = 98.0
 
 def podman_run(cmd, env: {})
   env_flags = env.map { |k, v| "-e #{k}=#{v}" }.join(" ")
@@ -10,20 +11,41 @@ def podman_run(cmd, env: {})
 end
 
 desc "Run all unit and integration tests"
-task :test do
-  puts "==> Running unit tests in Podman..."
-  success = podman_run("go test -v ./internal/...")
-  raise "Tests failed!" unless success
-end
+task :test => ["test:coverage"]
 
 namespace :test do
-  desc "Run tests with coverage and generate HTML report"
+  desc "Run tests with coverage and enforce minimum 98% coverage threshold"
   task :coverage do
     puts "==> Running tests with coverage in Podman..."
-    cmd = "sh -c 'go test -coverprofile=coverage.out ./internal/... && go tool cover -html=coverage.out -o coverage.html && go tool cover -func=coverage.out'"
-    success = podman_run(cmd)
-    raise "Coverage test failed!" unless success
-    puts "==> Coverage report generated at coverage.html"
+    cmd = "sh -c 'go test -coverprofile=coverage.out ./internal/... && go tool cover -func=coverage.out'"
+    
+    # Run command and capture stdout
+    output = `podman run --rm -v "#{PROJECT_DIR}:/app" -w /app #{GOLANG_IMAGE} #{cmd}`
+    puts output
+    
+    unless $?.success?
+      raise "Unit tests failed!"
+    end
+
+    # Parse total coverage percentage
+    match = output.match(/total:\s+\(statements\)\s+([\d\.]+)%/)
+    if match
+      coverage = match[1].to_f
+      puts "--------------------------------------------------------"
+      puts "==> Total Code Coverage: #{coverage}% (Threshold: #{MIN_COVERAGE}%)"
+      puts "--------------------------------------------------------"
+
+      # Also generate HTML report
+      podman_run("go tool cover -html=coverage.out -o coverage.html")
+
+      if coverage < MIN_COVERAGE
+        raise "Coverage check FAILED: Total coverage of #{coverage}% is below the required #{MIN_COVERAGE}% threshold!"
+      else
+        puts "==> Coverage check PASSED successfully!"
+      end
+    else
+      raise "Unable to parse code coverage output."
+    end
   end
 
   desc "Run End-to-End (E2E) integration tests using Testcontainers and Podman"

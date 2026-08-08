@@ -19,9 +19,6 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 }
 
 func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
-	if rw.statusCode == 0 {
-		rw.statusCode = http.StatusOK
-	}
 	n, err := rw.ResponseWriter.Write(b)
 	rw.bytesWritten += int64(n)
 	return n, err

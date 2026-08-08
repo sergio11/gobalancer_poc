@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-func TestRequestIDMiddleware(t *testing.T) {
+func TestRequestIDMiddleware_Generated(t *testing.T) {
 	handler := RequestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := GetRequestID(r.Context())
 		if reqID == "" {
-			t.Errorf("expected request ID in context")
+			t.Errorf("expected generated request ID in context")
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -23,6 +23,18 @@ func TestRequestIDMiddleware(t *testing.T) {
 
 	if rr.Header().Get(HeaderRequestID) == "" {
 		t.Errorf("expected X-Request-ID header in response")
+	}
+}
+
+func TestGenerateID(t *testing.T) {
+	id1 := generateID()
+	id2 := generateID()
+
+	if id1 == "" || id2 == "" {
+		t.Errorf("generateID returned empty string")
+	}
+	if id1 == id2 {
+		t.Errorf("expected unique IDs, got identical: %s", id1)
 	}
 }
 

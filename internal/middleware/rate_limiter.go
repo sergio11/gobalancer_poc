@@ -77,17 +77,21 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+func (rl *RateLimiter) cleanup() {
+	rl.mu.Lock()
+	now := time.Now()
+	for ip, b := range rl.clients {
+		if now.Sub(b.lastUpdate) > 10*time.Minute {
+			delete(rl.clients, ip)
+		}
+	}
+	rl.mu.Unlock()
+}
+
 func (rl *RateLimiter) cleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
 	for range ticker.C {
-		rl.mu.Lock()
-		now := time.Now()
-		for ip, b := range rl.clients {
-			if now.Sub(b.lastUpdate) > 10*time.Minute {
-				delete(rl.clients, ip)
-			}
-		}
-		rl.mu.Unlock()
+		rl.cleanup()
 	}
 }
 

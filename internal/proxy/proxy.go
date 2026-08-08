@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"time"
 
 	"gobalancer/internal/backend"
@@ -80,9 +79,4 @@ func (rp *ReverseProxy) createHttpProxy(b *backend.Backend) *httputil.ReversePro
 		ErrorHandler:  errorHandler,
 		Transport:     transport,
 	}
-}
-
-func parseURL(raw string) *url.URL {
-	u, _ := url.Parse(raw)
-	return u
 }
