@@ -9,7 +9,8 @@ import (
 )
 
 type ServerConfig struct {
-	Port int `yaml:"port"`
+	Port     int    `yaml:"port"`
+	LogLevel string `yaml:"logLevel"`
 }
 
 type LoadBalancerConfig struct {
@@ -27,10 +28,17 @@ type BackendConfig struct {
 	Weight int    `yaml:"weight"`
 }
 
+type RateLimitConfig struct {
+	Rate     float64 `yaml:"rate"`
+	Capacity float64 `yaml:"capacity"`
+	Enabled  bool    `yaml:"enabled"`
+}
+
 type Config struct {
 	Server       ServerConfig       `yaml:"server"`
 	LoadBalancer LoadBalancerConfig `yaml:"loadBalancer"`
 	HealthCheck  HealthCheckConfig  `yaml:"healthCheck"`
+	RateLimit    RateLimitConfig    `yaml:"rateLimit"`
 	Backends     []BackendConfig    `yaml:"backends"`
 }
 
@@ -71,6 +79,18 @@ func (c *Config) Validate() error {
 
 	if c.HealthCheck.MaxFailures <= 0 {
 		c.HealthCheck.MaxFailures = 3
+	}
+
+	if c.Server.LogLevel == "" {
+		c.Server.LogLevel = "info"
+	}
+
+	if c.RateLimit.Rate <= 0 {
+		c.RateLimit.Rate = 5000
+	}
+
+	if c.RateLimit.Capacity <= 0 {
+		c.RateLimit.Capacity = 10000
 	}
 
 	if len(c.Backends) == 0 {

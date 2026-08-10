@@ -7,6 +7,7 @@ import (
 
 	"gobalancer/internal/backend"
 	"gobalancer/internal/config"
+	"gobalancer/internal/httputil"
 )
 
 func TestFactory_AllAlgorithms(t *testing.T) {
@@ -70,7 +71,7 @@ func TestIPHash_HeadersAndInvalidAddr(t *testing.T) {
 	_ = iph
 
 	// 1. Nil request
-	ipNil := getClientIP(nil)
+	ipNil := httputil.GetClientIP(nil)
 	if ipNil != "127.0.0.1" {
 		t.Errorf("expected 127.0.0.1 for nil request, got %s", ipNil)
 	}
@@ -78,14 +79,14 @@ func TestIPHash_HeadersAndInvalidAddr(t *testing.T) {
 	// 2. X-Real-IP header
 	reqRealIP := httptest.NewRequest(http.MethodGet, "/", nil)
 	reqRealIP.Header.Set("X-Real-IP", "198.51.100.1")
-	if ip := getClientIP(reqRealIP); ip != "198.51.100.1" {
+	if ip := httputil.GetClientIP(reqRealIP); ip != "198.51.100.1" {
 		t.Errorf("expected X-Real-IP 198.51.100.1, got %s", ip)
 	}
 
 	// 3. RemoteAddr without host:port format (trigger SplitHostPort error)
 	reqRawAddr := httptest.NewRequest(http.MethodGet, "/", nil)
 	reqRawAddr.RemoteAddr = "custom-raw-ip-without-port"
-	if ip := getClientIP(reqRawAddr); ip != "custom-raw-ip-without-port" {
+	if ip := httputil.GetClientIP(reqRawAddr); ip != "custom-raw-ip-without-port" {
 		t.Errorf("expected raw address fallback, got %s", ip)
 	}
 }

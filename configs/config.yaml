@@ -1,5 +1,6 @@
 server:
   port: 8080
+  logLevel: info
 
 loadBalancer:
   algorithm: round-robin
@@ -8,6 +9,11 @@ healthCheck:
   interval: 5s
   timeout: 2s
   maxFailures: 3
+
+rateLimit:
+  rate: 5000
+  capacity: 10000
+  enabled: true
 
 backends:
   - url: http://localhost:9001

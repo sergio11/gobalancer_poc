@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"gobalancer/internal/httputil"
 )
 
 type clientBucket struct {
@@ -42,7 +44,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		clientIP := getClientIP(r)
+		clientIP := httputil.GetClientIP(r)
 
 		rl.mu.Lock()
 		b, exists := rl.clients[clientIP]
@@ -105,11 +107,4 @@ func (rl *RateLimiter) cleanupLoop() {
 
 func (rl *RateLimiter) Stop() {
 	close(rl.done)
-}
-
-func getClientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return xff
-	}
-	return r.RemoteAddr
 }

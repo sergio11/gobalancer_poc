@@ -33,9 +33,6 @@ func (s *safeBalancer) NextBackend(req *http.Request) (*backend.Backend, error) 
 }
 
 func main() {
-	log := logger.Init("info")
-	log.Info("Starting GoBalancer L7 Load Balancer...")
-
 	configPath := "configs/config.yaml"
 	if len(os.Args) > 1 {
 		configPath = os.Args[1]
@@ -43,9 +40,12 @@ func main() {
 
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Error("Failed to load configuration", "error", err)
+		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
+
+	log := logger.Init(cfg.Server.LogLevel)
+	log.Info("Starting GoBalancer L7 Load Balancer...")
 
 	pool, err := backend.NewBackendPool(cfg.Backends)
 	if err != nil {
@@ -95,7 +95,7 @@ func main() {
 	mux.Handle("/", revProxy)
 
 	// Rate Limiter
-	limiter := middleware.NewRateLimiter(5000, 10000, true)
+	limiter := middleware.NewRateLimiter(cfg.RateLimit.Rate, cfg.RateLimit.Capacity, cfg.RateLimit.Enabled)
 	defer limiter.Stop()
 
 	handler := middleware.Chain(
