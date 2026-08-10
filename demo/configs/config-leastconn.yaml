@@ -1,0 +1,19 @@
+server:
+  port: 8080
+  logLevel: info
+
+loadBalancer:
+  algorithm: least-connections
+
+healthCheck:
+  interval: 5s
+  timeout: 2s
+  maxFailures: 3
+
+backends:
+  - url: http://backend-1:80
+    weight: 5
+  - url: http://backend-2:80
+    weight: 3
+  - url: http://backend-3:80
+    weight: 1

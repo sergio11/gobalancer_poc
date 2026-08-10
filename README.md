@@ -284,6 +284,48 @@ rake build
 rake clean
 ```
 
+## Demo with Podman-Compose
+
+Interactive demonstration of the L7 Load Balancer running in containers, showcasing Go concurrency patterns and goroutine efficiency.
+
+### Quick start
+
+```bash
+rake demo          # Build + start + run interactive demo
+rake demo:stop     # Stop and remove containers
+```
+
+### Demo phases
+
+1. **Round Robin**: Cyclic distribution across 3 backends (1→2→3→1...)
+2. **Weighted Round Robin**: Proportional distribution (weight 5:3:1)
+3. **Health Check + Failover**: Backend failure detection and traffic rerouting
+4. **Metrics**: Prometheus-compatible metrics and admin API
+5. **Why Go?**: Goroutines vs threads comparison
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PODMAN NETWORK                              │
+│                   gobal-network (bridge)                        │
+│                                                                  │
+│   ┌──────────────┐                                              │
+│   │  gobalancer   │ :8080                                       │
+│   │   (Go 1.24)   │                                             │
+│   │   ~15MB       │                                             │
+│   └──────┬───────┘                                              │
+│          │                                                      │
+│          ├──────────────────┬──────────────────┐                 │
+│          ▼                  ▼                  ▼                 │
+│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐           │
+│   │  backend-1   │ │  backend-2   │ │  backend-3   │           │
+│   │  nginx:80    │ │  nginx:80    │ │  nginx:80    │           │
+│   │  weight: 5   │ │  weight: 3   │ │  weight: 1   │           │
+│   └──────────────┘ └──────────────┘ └──────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Project Structure
 
 ```
@@ -329,13 +371,27 @@ rake clean
 │   └── proxy/
 │       ├── proxy.go                # Reverse proxy wrapper
 │       └── proxy_test.go
+├── demo/
+│   ├── podman-compose.yml          # Container orchestration
+│   ├── Dockerfile.lb               # Multi-stage Go LB build
+│   ├── backend/
+│   │   ├── Dockerfile              # nginx backend
+│   │   └── nginx.conf              # Health endpoint config
+│   ├── configs/
+│   │   ├── config-roundrobin.yaml  # Round Robin config
+│   │   ├── config-weighted.yaml    # Weighted RR config
+│   │   └── config-leastconn.yaml   # Least Connections config
+│   └── backends/
+│       ├── backend-1/index.html    # Backend 1 page
+│       ├── backend-2/index.html    # Backend 2 page
+│       └── backend-3/index.html    # Backend 3 page
 ├── configs/
 │   └── config.yaml                 # Default configuration
 ├── test/
 │   └── e2e/
 │       └── e2e_test.go             # End-to-end integration tests
 ├── Dockerfile                       # Multi-stage container build
-├── Rakefile                         # Build automation (test, build, clean)
+├── Rakefile                         # Build automation (test, build, clean, demo)
 ├── go.mod                           # Go 1.24 module definition
 └── LICENSE                          # MIT
 ```
