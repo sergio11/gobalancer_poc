@@ -14,21 +14,27 @@ type clientBucket struct {
 }
 
 type RateLimiter struct {
-	rate       float64 // tokens per second
-	capacity   float64 // max bucket capacity
-	clients    map[string]*clientBucket
-	mu         sync.Mutex
-	enabled    bool
-	done       chan struct{}
+	rate           float64 // tokens per second
+	capacity       float64 // max bucket capacity
+	clients        map[string]*clientBucket
+	mu             sync.Mutex
+	enabled        bool
+	done           chan struct{}
+	cleanupTicker  time.Duration
 }
 
 func NewRateLimiter(rate float64, capacity float64, enabled bool) *RateLimiter {
+	return NewRateLimiterWithCleanup(rate, capacity, enabled, 5*time.Minute)
+}
+
+func NewRateLimiterWithCleanup(rate float64, capacity float64, enabled bool, cleanupInterval time.Duration) *RateLimiter {
 	rl := &RateLimiter{
-		rate:     rate,
-		capacity: capacity,
-		clients:  make(map[string]*clientBucket),
-		enabled:  enabled,
-		done:     make(chan struct{}),
+		rate:          rate,
+		capacity:      capacity,
+		clients:       make(map[string]*clientBucket),
+		enabled:       enabled,
+		done:          make(chan struct{}),
+		cleanupTicker: cleanupInterval,
 	}
 
 	// Periodically cleanup inactive clients
@@ -93,7 +99,7 @@ func (rl *RateLimiter) cleanup() {
 }
 
 func (rl *RateLimiter) cleanupLoop() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(rl.cleanupTicker)
 	defer ticker.Stop()
 	for {
 		select {

@@ -147,10 +147,61 @@ func TestRateLimiter_Stop(t *testing.T) {
 	}
 }
 
+func TestRateLimiter_TokenCap(t *testing.T) {
+	limiter := NewRateLimiter(10, 5, true)
+	defer limiter.Stop()
+
+	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.99"
+
+	rr1 := httptest.NewRecorder()
+	handler.ServeHTTP(rr1, req)
+	if rr1.Code != http.StatusOK {
+		t.Fatalf("first request expected 200, got %d", rr1.Code)
+	}
+
+	time.Sleep(1100 * time.Millisecond)
+
+	rr2 := httptest.NewRecorder()
+	handler.ServeHTTP(rr2, req)
+	if rr2.Code != http.StatusOK {
+		t.Errorf("after capacity cap expected 200, got %d", rr2.Code)
+	}
+}
+
 func TestRateLimiter_CleanupLoop_StopsOnDone(t *testing.T) {
 	limiter := NewRateLimiter(10, 20, true)
 	limiter.Stop()
 	// Give the goroutine time to exit
 	time.Sleep(10 * time.Millisecond)
 	// No panic or deadlock means the goroutine exited cleanly
+}
+
+func TestRateLimiter_CleanupLoop_TickFires(t *testing.T) {
+	limiter := NewRateLimiterWithCleanup(10, 20, true, 10*time.Millisecond)
+	defer limiter.Stop()
+
+	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "10.0.0.50"
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	time.Sleep(25 * time.Millisecond)
+
+	limiter.mu.Lock()
+	count := len(limiter.clients)
+	limiter.mu.Unlock()
+
+	if count != 1 {
+		t.Errorf("expected 1 client before cleanup, got %d", count)
+	}
 }

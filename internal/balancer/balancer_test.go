@@ -113,6 +113,21 @@ func TestIPHash_Consistency(t *testing.T) {
 	}
 }
 
+func TestWeightedRoundRobin_ZeroWeight(t *testing.T) {
+	pool := createTestPool(t)
+	pool.GetBackends()[0].Weight = 0
+	wrr := NewWeightedRoundRobin(pool)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+	b, err := wrr.NextBackend(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if b == nil {
+		t.Fatal("expected a backend, got nil")
+	}
+}
+
 func TestNoHealthyBackends(t *testing.T) {
 	pool := createTestPool(t)
 	for _, b := range pool.GetBackends() {

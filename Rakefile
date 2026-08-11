@@ -17,61 +17,47 @@ def podman_run(cmd, env: {})
   status.success?
 end
 
-desc "Run all unit and integration tests"
-task :test => ["test:coverage"]
+desc "Run all tests: unit + coverage + E2E"
+task :test do
+  puts "==> Running unit tests with coverage..."
+  test_cmd = ["sh", "-c", "go test -coverprofile=coverage.out ./internal/... && go tool cover -func=coverage.out"]
+  full_cmd = ["podman", "run", "--rm", "-v", "#{PROJECT_DIR}:/app", "-w", "/app", GOLANG_IMAGE] + test_cmd
 
-namespace :test do
-  desc "Run tests with coverage and enforce minimum 98% coverage threshold"
-  task :coverage do
-    puts "==> Running tests with coverage in Podman..."
+  stdout, stderr, status = Open3.capture3(*full_cmd)
+  puts stdout
+  $stderr.puts stderr unless stderr.empty?
+  raise "Unit tests failed!" unless status.success?
 
-    test_cmd = ["sh", "-c", "go test -coverprofile=coverage.out ./internal/... && go tool cover -func=coverage.out"]
-    full_cmd = ["podman", "run", "--rm", "-v", "#{PROJECT_DIR}:/app", "-w", "/app", GOLANG_IMAGE] + test_cmd
+  match = stdout.match(/total:\s+\(statements\)\s+([\d\.]+)%/)
+  raise "Unable to parse code coverage output." unless match
+  coverage = match[1].to_f
+  puts "--------------------------------------------------------"
+  puts "==> Total Code Coverage: #{coverage}% (Threshold: #{MIN_COVERAGE}%)"
+  puts "--------------------------------------------------------"
 
-    stdout, stderr, status = Open3.capture3(*full_cmd)
-    puts stdout
-    $stderr.puts stderr unless stderr.empty?
-
-    unless status.success?
-      raise "Unit tests failed!"
-    end
-
-    match = stdout.match(/total:\s+\(statements\)\s+([\d\.]+)%/)
-    if match
-      coverage = match[1].to_f
-      puts "--------------------------------------------------------"
-      puts "==> Total Code Coverage: #{coverage}% (Threshold: #{MIN_COVERAGE}%)"
-      puts "--------------------------------------------------------"
-
-      podman_run("go tool cover -html=coverage.out -o coverage.html")
-
-      if coverage < MIN_COVERAGE
-        raise "Coverage check FAILED: Total coverage of #{coverage}% is below the required #{MIN_COVERAGE}% threshold!"
-      else
-        puts "==> Coverage check PASSED successfully!"
-      end
-    else
-      raise "Unable to parse code coverage output."
-    end
+  if coverage < MIN_COVERAGE
+    raise "Coverage check FAILED: #{coverage}% is below the required #{MIN_COVERAGE}% threshold!"
   end
+  puts "==> Coverage check PASSED!"
 
-  desc "Run End-to-End (E2E) integration tests using Testcontainers and Podman"
-  task :e2e do
-    puts "==> Running E2E integration tests..."
-    sock_path = "/run/user/1000/podman/podman.sock"
-    env = {
-      "DOCKER_HOST" => "unix:///var/run/docker.sock",
-      "TESTCONTAINERS_RYUK_DISABLED" => "true"
-    }
-    test_cmd = ["sh", "-c", "go test -v -timeout 10m ./test/e2e/..."]
-    env_args = env.flat_map { |k, v| ["-e", "#{k}=#{v}"] }
-    full_cmd = ["podman", "run", "--rm"] + env_args + ["-v", "#{PROJECT_DIR}:/app", "-v", "#{sock_path}:/var/run/docker.sock", "-w", "/app", GOLANG_IMAGE] + test_cmd
+  podman_run("go tool cover -html=coverage.out -o coverage.html")
 
-    stdout, stderr, status = Open3.capture3(*full_cmd)
-    puts stdout
-    $stderr.puts stderr unless stderr.empty?
-    raise "E2E tests failed!" unless status.success?
-  end
+  puts "==> Running E2E integration tests..."
+  sock_path = "/run/user/1000/podman/podman.sock"
+  env = {
+    "DOCKER_HOST" => "unix:///var/run/docker.sock",
+    "TESTCONTAINERS_RYUK_DISABLED" => "true"
+  }
+  e2e_cmd = ["sh", "-c", "go test -v -timeout 10m ./test/e2e/..."]
+  env_args = env.flat_map { |k, v| ["-e", "#{k}=#{v}"] }
+  full_cmd = ["podman", "run", "--rm"] + env_args + ["-v", "#{PROJECT_DIR}:/app", "-v", "#{sock_path}:/var/run/docker.sock", "-w", "/app", GOLANG_IMAGE] + e2e_cmd
+
+  stdout, stderr, status = Open3.capture3(*full_cmd)
+  puts stdout
+  $stderr.puts stderr unless stderr.empty?
+  raise "E2E tests failed!" unless status.success?
+
+  puts "==> All tests passed!"
 end
 
 desc "Build GoBalancer binary"

@@ -59,3 +59,10 @@ func TestGetClientIP_RemoteAddrNoPort(t *testing.T) {
 		t.Errorf("expected 192.168.1.100, got %s", ip)
 	}
 }
+
+func TestGetClientIP_NilRequest(t *testing.T) {
+	ip := GetClientIP(nil)
+	if ip != "127.0.0.1" {
+		t.Errorf("expected 127.0.0.1 for nil request, got %s", ip)
+	}
+}

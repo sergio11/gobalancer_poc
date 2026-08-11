@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -92,5 +93,19 @@ func TestRateLimiterMiddleware(t *testing.T) {
 	handler.ServeHTTP(rr4, req)
 	if rr4.Code != http.StatusOK {
 		t.Errorf("req 4 after delay expected 200, got %d", rr4.Code)
+	}
+}
+
+func TestGenerateID_ErrorPath(t *testing.T) {
+	original := randReader
+	defer func() { randReader = original }()
+
+	randReader = func(b []byte) (int, error) {
+		return 0, fmt.Errorf("simulated entropy failure")
+	}
+
+	id := generateID()
+	if id != "req-unknown" {
+		t.Errorf("expected 'req-unknown' on rand failure, got %q", id)
 	}
 }

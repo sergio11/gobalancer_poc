@@ -85,6 +85,39 @@ func TestHealthChecker_InvalidRequest(t *testing.T) {
 	}
 }
 
+func TestHealthChecker_Start_CtxCancel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	pool, _ := backend.NewBackendPool([]config.BackendConfig{
+		{URL: srv.URL, Weight: 1},
+	})
+	cfg := config.HealthCheckConfig{
+		Interval:    50 * time.Millisecond,
+		Timeout:     50 * time.Millisecond,
+		MaxFailures: 3,
+	}
+	checker := NewHealthChecker(pool, cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		checker.Start(ctx)
+		close(done)
+	}()
+
+	time.Sleep(30 * time.Millisecond)
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Start did not return after context cancellation")
+	}
+}
+
 func TestHealthChecker_StartTickerAndStop(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -12,6 +12,8 @@ type contextKey string
 const RequestIDKey contextKey = "request_id"
 const HeaderRequestID = "X-Request-ID"
 
+var randReader = rand.Read
+
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get(HeaderRequestID)
@@ -27,7 +29,7 @@ func RequestID(next http.Handler) http.Handler {
 
 func generateID() string {
 	bytes := make([]byte, 12)
-	_, err := rand.Read(bytes)
+	_, err := randReader(bytes)
 	if err != nil {
 		return "req-unknown"
 	}
