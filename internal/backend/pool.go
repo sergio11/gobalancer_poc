@@ -35,6 +35,12 @@ func (p *BackendPool) AddBackend(b *Backend) {
 	p.backends = append(p.backends, b)
 }
 
+func (p *BackendPool) ReplaceBackends(backends []*Backend) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.backends = backends
+}
+
 func (p *BackendPool) GetBackends() []*Backend {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

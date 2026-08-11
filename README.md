@@ -262,15 +262,19 @@ backends:
 rake test
 ```
 
-Runs unit and integration tests with coverage, enforcing a **98% minimum coverage threshold**.
+Runs unit and integration tests with coverage (enforcing a **98% minimum coverage threshold**), E2E integration tests, and **race condition detection** via `go test -race` on both suites.
+
+### Run race detector checks
+
+```bash
+rake test:race
+```
+
+Runs unit and E2E suites with the Go race detector enabled to catch data races in the concurrent code paths.
 
 ### Run E2E tests
 
-```bash
-rake test:e2e
-```
-
-Runs end-to-end integration tests using Testcontainers and Podman.
+The `rake test` task runs the end-to-end integration tests using the Podman socket (DOCKER_HOST) inside a containerized Go environment.
 
 ### Build binary
 

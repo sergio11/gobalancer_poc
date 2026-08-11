@@ -45,3 +45,36 @@ func TestBackendPool_GetBackendByURL_Found(t *testing.T) {
 		t.Errorf("expected nil for non-existent backend URL")
 	}
 }
+
+func TestBackendPool_ReplaceBackends(t *testing.T) {
+	pool, _ := NewBackendPool([]config.BackendConfig{
+		{URL: "http://localhost:9001", Weight: 1},
+		{URL: "http://localhost:9002", Weight: 2},
+	})
+
+	replacement, err := NewBackend("new-1", "http://localhost:9101", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	replacement2, err := NewBackend("new-2", "http://localhost:9102", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	replacement3, err := NewBackend("new-3", "http://localhost:9103", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pool.ReplaceBackends([]*Backend{replacement, replacement2, replacement3})
+
+	backends := pool.GetBackends()
+	if len(backends) != 3 {
+		t.Fatalf("expected 3 backends after ReplaceBackends, got %d", len(backends))
+	}
+	if backends[0].ID != "new-1" || backends[2].ID != "new-3" {
+		t.Errorf("unexpected backends after replace: %v", backends)
+	}
+	if pool.GetBackendByURL("http://localhost:9001") != nil {
+		t.Errorf("old backends should be removed after ReplaceBackends")
+	}
+}

@@ -5,19 +5,30 @@ require "open3"
 require "shellwords"
 
 GOLANG_IMAGE = "docker.io/library/golang:1.24-alpine"
+# Debian-based image includes gcc, required for `go test -race` (cgo).
+GOLANG_RACE_IMAGE = "docker.io/library/golang:1.24"
 PROJECT_DIR = File.expand_path(__dir__)
 MIN_COVERAGE = 98.0
+PODMAN_SOCKET = "/run/user/1000/podman/podman.sock"
 
-def podman_run(cmd, env: {})
+def podman_run(cmd, env: {}, image: GOLANG_IMAGE, mounts: [])
   env_args = env.flat_map { |k, v| ["-e", "#{k}=#{v}"] }
-  full_cmd = ["podman", "run", "--rm"] + env_args + ["-v", "#{PROJECT_DIR}:/app", "-w", "/app", GOLANG_IMAGE] + cmd.shellsplit
+  mount_args = mounts.flat_map { |m| ["-v", m] }
+  full_cmd = ["podman", "run", "--rm"] + env_args + mount_args + ["-v", "#{PROJECT_DIR}:/app", "-w", "/app", image] + cmd.shellsplit
   stdout, stderr, status = Open3.capture3(*full_cmd)
   puts stdout unless stdout.empty?
   $stderr.puts stderr unless stderr.empty?
   status.success?
 end
 
-desc "Run all tests: unit + coverage + E2E"
+def e2e_env
+  {
+    "DOCKER_HOST" => "unix:///var/run/docker.sock",
+    "TESTCONTAINERS_RYUK_DISABLED" => "true"
+  }
+end
+
+desc "Run all tests: unit + coverage + race detector + E2E"
 task :test do
   puts "==> Running unit tests with coverage..."
   test_cmd = ["sh", "-c", "go test -coverprofile=coverage.out ./internal/... && go tool cover -func=coverage.out"]
@@ -42,22 +53,54 @@ task :test do
 
   podman_run("go tool cover -html=coverage.out -o coverage.html")
 
-  puts "==> Running E2E integration tests..."
-  sock_path = "/run/user/1000/podman/podman.sock"
-  env = {
-    "DOCKER_HOST" => "unix:///var/run/docker.sock",
-    "TESTCONTAINERS_RYUK_DISABLED" => "true"
-  }
-  e2e_cmd = ["sh", "-c", "go test -v -timeout 10m ./test/e2e/..."]
-  env_args = env.flat_map { |k, v| ["-e", "#{k}=#{v}"] }
-  full_cmd = ["podman", "run", "--rm"] + env_args + ["-v", "#{PROJECT_DIR}:/app", "-v", "#{sock_path}:/var/run/docker.sock", "-w", "/app", GOLANG_IMAGE] + e2e_cmd
+  puts "==> Running unit tests with the race detector..."
+  unless podman_run("go test -race -count=1 ./internal/...", image: GOLANG_RACE_IMAGE)
+    raise "Race detector unit tests failed!"
+  end
+  puts "==> Race detector unit tests PASSED!"
 
-  stdout, stderr, status = Open3.capture3(*full_cmd)
-  puts stdout
-  $stderr.puts stderr unless stderr.empty?
-  raise "E2E tests failed!" unless status.success?
+  puts "==> Running E2E integration tests..."
+  unless podman_run(
+    "go test -v -timeout 10m ./test/e2e/...",
+    env: e2e_env,
+    mounts: ["#{PODMAN_SOCKET}:/var/run/docker.sock"]
+  )
+    raise "E2E tests failed!"
+  end
+  puts "==> E2E tests PASSED!"
+
+  puts "==> Running E2E tests with the race detector..."
+  unless podman_run(
+    "go test -race -count=1 -timeout 15m ./test/e2e/...",
+    env: e2e_env,
+    image: GOLANG_RACE_IMAGE,
+    mounts: ["#{PODMAN_SOCKET}:/var/run/docker.sock"]
+  )
+    raise "Race detector E2E tests failed!"
+  end
+  puts "==> Race detector E2E tests PASSED!"
 
   puts "==> All tests passed!"
+end
+
+desc "Run all tests with the race detector enabled"
+task "test:race" do
+  puts "==> Running unit tests with the race detector..."
+  unless podman_run("go test -race -count=1 ./internal/...", image: GOLANG_RACE_IMAGE)
+    raise "Race detector unit tests failed!"
+  end
+  puts "==> Race detector unit tests PASSED!"
+
+  puts "==> Running E2E tests with the race detector..."
+  unless podman_run(
+    "go test -race -count=1 -timeout 15m ./test/e2e/...",
+    env: e2e_env,
+    image: GOLANG_RACE_IMAGE,
+    mounts: ["#{PODMAN_SOCKET}:/var/run/docker.sock"]
+  )
+    raise "Race detector E2E tests failed!"
+  end
+  puts "==> Race detector E2E tests PASSED!"
 end
 
 desc "Build GoBalancer binary"
