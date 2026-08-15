@@ -67,7 +67,7 @@ func (m *MetricsService) Handler() http.HandlerFunc {
 		fmt.Fprintf(w, "unhealthy_backends %d\n\n", unhealthyCount)
 
 		for _, b := range backends {
-			fmt.Fprintf(w, "backend_latency_ms{backend=\"%s\",url=\"%s\"} %d\n", b.ID, b.URL.String(), b.Latency.Milliseconds())
+			fmt.Fprintf(w, "backend_latency_ms{backend=\"%s\",url=\"%s\"} %d\n", b.ID, b.URL.String(), b.GetLatency().Milliseconds())
 			fmt.Fprintf(w, "backend_active_connections{backend=\"%s\",url=\"%s\"} %d\n", b.ID, b.URL.String(), b.GetConnections())
 		}
 	}

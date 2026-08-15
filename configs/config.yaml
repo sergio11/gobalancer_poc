@@ -14,6 +14,10 @@ rateLimit:
   rate: 5000
   capacity: 10000
   enabled: true
+  trustForwardedHeaders: false
+
+admin:
+  secret: ""
 
 backends:
   - url: http://localhost:9001

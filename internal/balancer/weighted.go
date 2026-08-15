@@ -29,9 +29,19 @@ func (wrr *WeightedRoundRobin) NextBackend(req *http.Request) (*backend.Backend,
 		return nil, ErrNoHealthyBackends
 	}
 
+	validIDs := make(map[string]bool, len(healthy))
+	for _, b := range healthy {
+		validIDs[b.ID] = true
+	}
+	for id := range wrr.currentWeights {
+		if !validIDs[id] {
+			delete(wrr.currentWeights, id)
+		}
+	}
+
 	totalWeight := 0
 	var maxBackend *backend.Backend
-	maxCurrentWeight := -1 << 31 // min int
+	maxCurrentWeight := -1 << 31
 
 	for _, b := range healthy {
 		weight := b.Weight

@@ -55,7 +55,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 }
 
 func TestRateLimiterMiddleware(t *testing.T) {
-	limiter := NewRateLimiter(1, 2, true) // rate 1/s, max capacity 2
+	limiter := NewRateLimiter(1, 2, true, false) // rate 1/s, max capacity 2
 
 	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

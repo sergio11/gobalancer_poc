@@ -96,7 +96,7 @@ func TestRequestID_ExistingHeader(t *testing.T) {
 }
 
 func TestRateLimiter_Disabled(t *testing.T) {
-	limiter := NewRateLimiter(0, 0, false)
+	limiter := NewRateLimiter(0, 0, false, false)
 	called := false
 	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -116,7 +116,7 @@ func TestRateLimiter_Disabled(t *testing.T) {
 }
 
 func TestRateLimiter_XForwardedFor(t *testing.T) {
-	limiter := NewRateLimiter(100, 200, true)
+	limiter := NewRateLimiter(100, 200, true, true)
 	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -132,7 +132,7 @@ func TestRateLimiter_XForwardedFor(t *testing.T) {
 }
 
 func TestRateLimiter_Stop(t *testing.T) {
-	limiter := NewRateLimiter(10, 20, true)
+	limiter := NewRateLimiter(10, 20, true, false)
 
 	done := make(chan struct{})
 	go func() {
@@ -148,7 +148,7 @@ func TestRateLimiter_Stop(t *testing.T) {
 }
 
 func TestRateLimiter_TokenCap(t *testing.T) {
-	limiter := NewRateLimiter(10, 5, true)
+	limiter := NewRateLimiter(10, 5, true, false)
 	defer limiter.Stop()
 
 	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +174,7 @@ func TestRateLimiter_TokenCap(t *testing.T) {
 }
 
 func TestRateLimiter_CleanupLoop_StopsOnDone(t *testing.T) {
-	limiter := NewRateLimiter(10, 20, true)
+	limiter := NewRateLimiter(10, 20, true, false)
 	limiter.Stop()
 	// Give the goroutine time to exit
 	time.Sleep(10 * time.Millisecond)
@@ -182,7 +182,7 @@ func TestRateLimiter_CleanupLoop_StopsOnDone(t *testing.T) {
 }
 
 func TestRateLimiter_CleanupLoop_TickFires(t *testing.T) {
-	limiter := NewRateLimiterWithCleanup(10, 20, true, 10*time.Millisecond)
+	limiter := NewRateLimiterWithCleanup(10, 20, true, 10*time.Millisecond, false)
 	defer limiter.Stop()
 
 	handler := limiter.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

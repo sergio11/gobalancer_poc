@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"runtime/debug"
 
@@ -18,7 +17,7 @@ func Recovery(next http.Handler) http.Handler {
 					"stack", string(debug.Stack()),
 					"path", r.URL.Path,
 				)
-				http.Error(w, fmt.Sprintf("Internal Server Error: panic recovered (%v)", err), http.StatusInternalServerError)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
 		next.ServeHTTP(w, r)

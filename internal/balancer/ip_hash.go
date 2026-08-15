@@ -24,7 +24,7 @@ func (iph *IPHash) NextBackend(req *http.Request) (*backend.Backend, error) {
 		return nil, ErrNoHealthyBackends
 	}
 
-	clientIP := httputil.GetClientIP(req)
+	clientIP := httputil.GetClientIP(req, true)
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(clientIP))
 	hashVal := h.Sum32()

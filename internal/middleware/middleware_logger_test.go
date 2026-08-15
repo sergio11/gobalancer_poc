@@ -60,7 +60,7 @@ func TestMiddlewareChain_Empty(t *testing.T) {
 }
 
 func TestRateLimiter_Cleanup(t *testing.T) {
-	rl := NewRateLimiter(10, 20, true)
+	rl := NewRateLimiter(10, 20, true, false)
 
 	// Add a fresh client
 	rl.mu.Lock()

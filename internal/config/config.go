@@ -29,9 +29,14 @@ type BackendConfig struct {
 }
 
 type RateLimitConfig struct {
-	Rate     float64 `yaml:"rate"`
-	Capacity float64 `yaml:"capacity"`
-	Enabled  bool    `yaml:"enabled"`
+	Rate                  float64 `yaml:"rate"`
+	Capacity              float64 `yaml:"capacity"`
+	Enabled               bool    `yaml:"enabled"`
+	TrustForwardedHeaders bool    `yaml:"trustForwardedHeaders"`
+}
+
+type AdminConfig struct {
+	Secret string `yaml:"secret"`
 }
 
 type Config struct {
@@ -39,6 +44,7 @@ type Config struct {
 	LoadBalancer LoadBalancerConfig `yaml:"loadBalancer"`
 	HealthCheck  HealthCheckConfig  `yaml:"healthCheck"`
 	RateLimit    RateLimitConfig    `yaml:"rateLimit"`
+	Admin        AdminConfig        `yaml:"admin"`
 	Backends     []BackendConfig    `yaml:"backends"`
 }
 

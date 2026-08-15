@@ -78,15 +78,20 @@ func main() {
 		if err != nil {
 			return err
 		}
-		*pool = *newPool
+		pool.ReplaceBackends(newPool.GetBackends())
 		sb.mu.Lock()
 		sb.inner = newBal
 		sb.mu.Unlock()
+
+		checker.Stop()
+		checker = health.NewHealthChecker(pool, newCfg.HealthCheck)
+		go checker.Start(ctx)
+
 		log.Info("Configuration reloaded successfully")
 		return nil
 	}
 
-	adminAPI := api.NewAdminAPI(pool, configPath, onReload)
+	adminAPI := api.NewAdminAPI(pool, configPath, onReload, cfg.Admin.Secret)
 
 	// Routing setup
 	mux := http.NewServeMux()
@@ -95,7 +100,7 @@ func main() {
 	mux.Handle("/", revProxy)
 
 	// Rate Limiter
-	limiter := middleware.NewRateLimiter(cfg.RateLimit.Rate, cfg.RateLimit.Capacity, cfg.RateLimit.Enabled)
+	limiter := middleware.NewRateLimiter(cfg.RateLimit.Rate, cfg.RateLimit.Capacity, cfg.RateLimit.Enabled, cfg.RateLimit.TrustForwardedHeaders)
 	defer limiter.Stop()
 
 	handler := middleware.Chain(
@@ -108,11 +113,13 @@ func main() {
 
 	serverAddr := fmt.Sprintf(":%d", cfg.Server.Port)
 	srv := &http.Server{
-		Addr:         serverAddr,
-		Handler:      handler,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              serverAddr,
+		Handler:           handler,
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	go func() {

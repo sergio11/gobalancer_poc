@@ -197,7 +197,7 @@ func setupTestLB(t *testing.T, opts lbOptions) *lbEnv {
 		return nil
 	}
 
-	adminAPI := api.NewAdminAPI(pool, opts.configPath, onReload)
+	adminAPI := api.NewAdminAPI(pool, opts.configPath, onReload, "")
 
 	mux := http.NewServeMux()
 	adminAPI.RegisterRoutes(mux)
@@ -207,7 +207,7 @@ func setupTestLB(t *testing.T, opts lbOptions) *lbEnv {
 	}
 	mux.Handle("/", revProxy)
 
-	limiter := middleware.NewRateLimiter(opts.rateLimit.Rate, opts.rateLimit.Capacity, opts.rateLimit.Enabled)
+	limiter := middleware.NewRateLimiter(opts.rateLimit.Rate, opts.rateLimit.Capacity, opts.rateLimit.Enabled, false)
 	t.Cleanup(limiter.Stop)
 
 	handler := middleware.Chain(

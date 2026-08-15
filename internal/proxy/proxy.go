@@ -1,9 +1,9 @@
 package proxy
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"sync"
 	"time"
 
 	"gobalancer/internal/backend"
@@ -17,6 +17,7 @@ type ReverseProxy struct {
 	metrics     *metrics.MetricsService
 	maxFailures int
 	transport   *http.Transport
+	proxyCache  sync.Map
 }
 
 func NewReverseProxy(b balancer.Balancer, m *metrics.MetricsService, maxFailures int) *ReverseProxy {
@@ -51,8 +52,17 @@ func (rp *ReverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	targetBackend.IncConnections()
 	defer targetBackend.DecConnections()
 
-	proxy := rp.createHttpProxy(targetBackend)
+	proxy := rp.getOrCreateProxy(targetBackend)
 	proxy.ServeHTTP(w, req)
+}
+
+func (rp *ReverseProxy) getOrCreateProxy(b *backend.Backend) *httputil.ReverseProxy {
+	if cached, ok := rp.proxyCache.Load(b.ID); ok {
+		return cached.(*httputil.ReverseProxy)
+	}
+	proxy := rp.createHttpProxy(b)
+	rp.proxyCache.Store(b.ID, proxy)
+	return proxy
 }
 
 func (rp *ReverseProxy) createHttpProxy(b *backend.Backend) *httputil.ReverseProxy {
@@ -83,7 +93,7 @@ func (rp *ReverseProxy) createHttpProxy(b *backend.Backend) *httputil.ReversePro
 			"error", err,
 		)
 		b.RecordFailure(int64(rp.maxFailures))
-		http.Error(w, fmt.Sprintf("Bad Gateway: %v", err), http.StatusBadGateway)
+		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 	}
 
 	return &httputil.ReverseProxy{

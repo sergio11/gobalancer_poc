@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"gobalancer/internal/backend"
@@ -11,10 +12,11 @@ import (
 )
 
 type HealthChecker struct {
-	pool        *backend.BackendPool
-	cfg         config.HealthCheckConfig
-	client      *http.Client
-	stopChan    chan struct{}
+	pool     *backend.BackendPool
+	cfg      config.HealthCheckConfig
+	client   *http.Client
+	stopChan chan struct{}
+	wg       sync.WaitGroup
 }
 
 func NewHealthChecker(pool *backend.BackendPool, cfg config.HealthCheckConfig) *HealthChecker {
@@ -49,12 +51,17 @@ func (hc *HealthChecker) Start(ctx context.Context) {
 
 func (hc *HealthChecker) Stop() {
 	close(hc.stopChan)
+	hc.wg.Wait()
 }
 
 func (hc *HealthChecker) CheckAll(ctx context.Context) {
 	backends := hc.pool.GetBackends()
 	for _, b := range backends {
-		go hc.CheckBackend(ctx, b)
+		hc.wg.Add(1)
+		go func(b *backend.Backend) {
+			defer hc.wg.Done()
+			hc.CheckBackend(ctx, b)
+		}(b)
 	}
 }
 

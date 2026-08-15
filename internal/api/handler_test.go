@@ -35,7 +35,7 @@ backends:
 		return nil
 	}
 
-	admin := NewAdminAPI(pool, cfgPath, onReload)
+	admin := NewAdminAPI(pool, cfgPath, onReload, "")
 	mux := http.NewServeMux()
 	admin.RegisterRoutes(mux)
 

@@ -14,6 +14,7 @@ type AdminAPI struct {
 	pool       *backend.BackendPool
 	configPath string
 	onReload   func(cfg *config.Config) error
+	apiSecret  string
 }
 
 type BackendDTO struct {
@@ -34,18 +35,34 @@ type StatsDTO struct {
 	UnhealthyCount  int `json:"unhealthy_backends"`
 }
 
-func NewAdminAPI(pool *backend.BackendPool, configPath string, onReload func(cfg *config.Config) error) *AdminAPI {
+func NewAdminAPI(pool *backend.BackendPool, configPath string, onReload func(cfg *config.Config) error, apiSecret string) *AdminAPI {
 	return &AdminAPI{
 		pool:       pool,
 		configPath: configPath,
 		onReload:   onReload,
+		apiSecret:  apiSecret,
+	}
+}
+
+func (api *AdminAPI) withAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if api.apiSecret == "" {
+			next(w, r)
+			return
+		}
+		_, password, ok := r.BasicAuth()
+		if !ok || password != api.apiSecret {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
 	}
 }
 
 func (api *AdminAPI) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/backends", api.HandleGetBackends)
-	mux.HandleFunc("GET /api/stats", api.HandleGetStats)
-	mux.HandleFunc("POST /api/reload", api.HandleReloadConfig)
+	mux.HandleFunc("GET /api/backends", api.withAuth(api.HandleGetBackends))
+	mux.HandleFunc("GET /api/stats", api.withAuth(api.HandleGetStats))
+	mux.HandleFunc("POST /api/reload", api.withAuth(api.HandleReloadConfig))
 	mux.HandleFunc("GET /health", api.HandleHealth)
 }
 
@@ -60,7 +77,7 @@ func (api *AdminAPI) HandleGetBackends(w http.ResponseWriter, r *http.Request) {
 			Status:            b.GetStatus(),
 			Weight:            b.Weight,
 			ActiveConnections: b.GetConnections(),
-			LatencyMs:         b.Latency.Milliseconds(),
+			LatencyMs:         b.GetLatency().Milliseconds(),
 			Failures:          b.Failures.Load(),
 			Successes:         b.Successes.Load(),
 			LastHealthCheck:   b.LastHealthCheck,

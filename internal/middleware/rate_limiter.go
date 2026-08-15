@@ -14,27 +14,29 @@ type clientBucket struct {
 }
 
 type RateLimiter struct {
-	rate           float64 // tokens per second
-	capacity       float64 // max bucket capacity
-	clients        map[string]*clientBucket
-	mu             sync.Mutex
-	enabled        bool
-	done           chan struct{}
-	cleanupTicker  time.Duration
+	rate                  float64
+	capacity              float64
+	clients               map[string]*clientBucket
+	mu                    sync.Mutex
+	enabled               bool
+	done                  chan struct{}
+	cleanupTicker         time.Duration
+	trustForwardedHeaders bool
 }
 
-func NewRateLimiter(rate float64, capacity float64, enabled bool) *RateLimiter {
-	return NewRateLimiterWithCleanup(rate, capacity, enabled, 5*time.Minute)
+func NewRateLimiter(rate float64, capacity float64, enabled bool, trustForwardedHeaders bool) *RateLimiter {
+	return NewRateLimiterWithCleanup(rate, capacity, enabled, 5*time.Minute, trustForwardedHeaders)
 }
 
-func NewRateLimiterWithCleanup(rate float64, capacity float64, enabled bool, cleanupInterval time.Duration) *RateLimiter {
+func NewRateLimiterWithCleanup(rate float64, capacity float64, enabled bool, cleanupInterval time.Duration, trustForwardedHeaders bool) *RateLimiter {
 	rl := &RateLimiter{
-		rate:          rate,
-		capacity:      capacity,
-		clients:       make(map[string]*clientBucket),
-		enabled:       enabled,
-		done:          make(chan struct{}),
-		cleanupTicker: cleanupInterval,
+		rate:                  rate,
+		capacity:              capacity,
+		clients:               make(map[string]*clientBucket),
+		enabled:               enabled,
+		done:                  make(chan struct{}),
+		cleanupTicker:         cleanupInterval,
+		trustForwardedHeaders: trustForwardedHeaders,
 	}
 
 	// Periodically cleanup inactive clients
@@ -50,7 +52,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		clientIP := httputil.GetClientIP(r)
+		clientIP := httputil.GetClientIP(r, rl.trustForwardedHeaders)
 
 		rl.mu.Lock()
 		b, exists := rl.clients[clientIP]

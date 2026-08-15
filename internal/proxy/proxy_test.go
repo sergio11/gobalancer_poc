@@ -136,3 +136,34 @@ func TestReverseProxy_MetricsErrorIncremented(t *testing.T) {
 		t.Errorf("expected 503, got %d", rr.Code)
 	}
 }
+
+func TestReverseProxy_ProxyCache(t *testing.T) {
+	backendServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer backendServer.Close()
+
+	pool, _ := backend.NewBackendPool([]config.BackendConfig{{URL: backendServer.URL, Weight: 1}})
+	bal := balancer.NewRoundRobin(pool)
+	rp := NewReverseProxy(bal, nil, 3)
+
+	req1 := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr1 := httptest.NewRecorder()
+	rp.ServeHTTP(rr1, req1)
+	if rr1.Code != http.StatusOK {
+		t.Fatalf("first request: expected 200, got %d", rr1.Code)
+	}
+
+	_, exists := rp.proxyCache.Load(pool.GetBackends()[0].ID)
+	if !exists {
+		t.Error("expected proxy to be cached after first request")
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr2 := httptest.NewRecorder()
+	rp.ServeHTTP(rr2, req2)
+	if rr2.Code != http.StatusOK {
+		t.Errorf("second request (cached): expected 200, got %d", rr2.Code)
+	}
+}
