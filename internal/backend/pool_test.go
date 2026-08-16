@@ -3,7 +3,7 @@ package backend
 import (
 	"testing"
 
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 func TestBackendPool_AddBackend(t *testing.T) {

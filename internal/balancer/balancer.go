@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gobalancer/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
 )
 
 var ErrNoHealthyBackends = errors.New("no healthy backends available")

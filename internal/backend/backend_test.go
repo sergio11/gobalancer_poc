@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 func TestBackend_ConnectionsAndStatus(t *testing.T) {

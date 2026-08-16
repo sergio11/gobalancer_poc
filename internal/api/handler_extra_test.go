@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 func TestAdminAPI_GetStats(t *testing.T) {

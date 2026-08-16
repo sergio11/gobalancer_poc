@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+.editorconfig
+bin/
+coverage.out
+coverage.html
+SRS.txt
+MEDIUM_ARTICLE.md
+README.md
+LICENSE
+test/
+demo/
+*.exe
+*.md

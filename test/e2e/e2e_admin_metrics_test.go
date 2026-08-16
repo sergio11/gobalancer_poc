@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"gobalancer/internal/api"
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/api"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 // TestE2E_AdminAPI_HealthAndBackends verifies the admin health endpoint and

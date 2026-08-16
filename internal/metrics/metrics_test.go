@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 func TestMetricsHandler_CorrectOutput(t *testing.T) {

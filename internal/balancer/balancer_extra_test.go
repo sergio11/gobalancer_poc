@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
-	"gobalancer/internal/httputil"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/httputil"
 )
 
 func TestFactory_AllAlgorithms(t *testing.T) {

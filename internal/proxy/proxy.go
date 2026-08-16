@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/balancer"
-	"gobalancer/internal/logger"
-	"gobalancer/internal/metrics"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/balancer"
+	"github.com/sergio11/gobalancer_poc/internal/logger"
+	"github.com/sergio11/gobalancer_poc/internal/metrics"
 )
 
 type ReverseProxy struct {

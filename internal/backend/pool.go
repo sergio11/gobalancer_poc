@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 type BackendPool struct {

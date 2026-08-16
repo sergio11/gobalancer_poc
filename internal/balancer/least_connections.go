@@ -3,7 +3,7 @@ package balancer
 import (
 	"net/http"
 
-	"gobalancer/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
 )
 
 type LeastConnections struct {

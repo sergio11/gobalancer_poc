@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"gobalancer/internal/logger"
+	"github.com/sergio11/gobalancer_poc/internal/logger"
 )
 
 type responseWriterWrapper struct {

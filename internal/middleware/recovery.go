@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"gobalancer/internal/logger"
+	"github.com/sergio11/gobalancer_poc/internal/logger"
 )
 
 func Recovery(next http.Handler) http.Handler {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"gobalancer/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
 )
 
 type Random struct {

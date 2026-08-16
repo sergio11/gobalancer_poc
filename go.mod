@@ -1,4 +1,4 @@
-module gobalancer
+module github.com/sergio11/gobalancer_poc
 
 go 1.24
 

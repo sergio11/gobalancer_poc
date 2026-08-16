@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"gobalancer/internal/httputil"
+	"github.com/sergio11/gobalancer_poc/internal/httputil"
 )
 
 type clientBucket struct {

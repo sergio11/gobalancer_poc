@@ -6,9 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Coverage](https://img.shields.io/badge/Coverage-98%25-brightgreen?style=for-the-badge)](#-testing)
 [![Podman](https://img.shields.io/badge/Podman-4.x-892CA0?style=for-the-badge&logo=podman&logoColor=white)](https://podman.io/)
-[![Go Report Card](https://img.shields.io/badge/Go_Report_Card-A%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/sergioApproachable/poc_load_balancer)
-[![Code Size](https://img.shields.io/badge/Code_Size-dynamic-blue?style=for-the-badge&logo=go)](https://github.com/sergioApproachable/poc_load_balancer)
-[![Last Commit](https://img.shields.io/badge/Last_Commit-2026-brightgreen?style=for-the-badge&logo=git)](https://github.com/sergioApproachable/poc_load_balancer)
+[![Code Size](https://img.shields.io/badge/Code_Size-dynamic-blue?style=for-the-badge&logo=go)](https://github.com/sergio11/gobalancer_poc)
+[![Last Commit](https://img.shields.io/badge/Last_Commit-2026-brightgreen?style=for-the-badge&logo=git)](https://github.com/sergio11/gobalancer_poc)
 
 A proof-of-concept **L7 (HTTP/HTTPS) Load Balancer** built in Go, demonstrating load balancing algorithms, health checking, reverse proxying, rate limiting, structured logging, Prometheus-compatible metrics, dynamic configuration reload, and Podman-based automation — showcasing production-grade Go patterns in a self-contained project.
 

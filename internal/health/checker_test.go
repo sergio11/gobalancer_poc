@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 func TestHealthChecker_HealthyAndUnhealthy(t *testing.T) {

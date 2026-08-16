@@ -14,15 +14,15 @@ import (
 	"testing"
 	"time"
 
-	"gobalancer/internal/api"
-	"gobalancer/internal/backend"
-	"gobalancer/internal/balancer"
-	"gobalancer/internal/config"
-	"gobalancer/internal/health"
-	"gobalancer/internal/logger"
-	"gobalancer/internal/metrics"
-	"gobalancer/internal/middleware"
-	"gobalancer/internal/proxy"
+	"github.com/sergio11/gobalancer_poc/internal/api"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/balancer"
+	"github.com/sergio11/gobalancer_poc/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/health"
+	"github.com/sergio11/gobalancer_poc/internal/logger"
+	"github.com/sergio11/gobalancer_poc/internal/metrics"
+	"github.com/sergio11/gobalancer_poc/internal/middleware"
+	"github.com/sergio11/gobalancer_poc/internal/proxy"
 )
 
 func TestMain(m *testing.M) {

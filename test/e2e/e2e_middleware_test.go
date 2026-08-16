@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 // TestE2E_RequestIDHeader verifies the RequestID middleware injects (or echoes)

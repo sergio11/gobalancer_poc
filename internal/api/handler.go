@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
-	"gobalancer/internal/logger"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/logger"
 )
 
 type AdminAPI struct {

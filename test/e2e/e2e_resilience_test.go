@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/config"
 )
 
 // TestE2E_AllBackendsDown_Returns503 verifies that when every backend is

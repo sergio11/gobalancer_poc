@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gobalancer/internal/backend"
-	"gobalancer/internal/balancer"
-	"gobalancer/internal/config"
-	"gobalancer/internal/metrics"
+	"github.com/sergio11/gobalancer_poc/internal/backend"
+	"github.com/sergio11/gobalancer_poc/internal/balancer"
+	"github.com/sergio11/gobalancer_poc/internal/config"
+	"github.com/sergio11/gobalancer_poc/internal/metrics"
 )
 
 func TestReverseProxy_ForwardsRequest(t *testing.T) {
