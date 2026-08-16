@@ -1,41 +1,58 @@
-# GoBalancer — L7 Load Balancer POC
+<div align="center">
 
-[![Go 1.24](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Coverage-98%25-brightgreen.svg)](#testing)
-[![Podman](https://img.shields.io/badge/Podman-4.x-892CA0?logo=podman&logoColor=white)](https://podman.io/)
+# ⚖️ GoBalancer — L7 Load Balancer POC
 
-A proof-of-concept L7 (HTTP/HTTPS) Load Balancer built in Go, demonstrating load balancing algorithms, health checking, reverse proxying, rate limiting, structured logging, Prometheus-compatible metrics, dynamic configuration reload, and Podman-based automation — showcasing production-grade Go patterns in a self-contained project.
+[![Go 1.24](https://img.shields.io/badge/Go-1.24-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Coverage](https://img.shields.io/badge/Coverage-98%25-brightgreen?style=for-the-badge)](#-testing)
+[![Podman](https://img.shields.io/badge/Podman-4.x-892CA0?style=for-the-badge&logo=podman&logoColor=white)](https://podman.io/)
+[![Go Report Card](https://img.shields.io/badge/Go_Report_Card-A%2B-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/sergioApproachable/poc_load_balancer)
+[![Code Size](https://img.shields.io/badge/Code_Size-dynamic-blue?style=for-the-badge&logo=go)](https://github.com/sergioApproachable/poc_load_balancer)
+[![Last Commit](https://img.shields.io/badge/Last_Commit-2026-brightgreen?style=for-the-badge&logo=git)](https://github.com/sergioApproachable/poc_load_balancer)
 
-## Disclaimer
+A proof-of-concept **L7 (HTTP/HTTPS) Load Balancer** built in Go, demonstrating load balancing algorithms, health checking, reverse proxying, rate limiting, structured logging, Prometheus-compatible metrics, dynamic configuration reload, and Podman-based automation — showcasing production-grade Go patterns in a self-contained project.
+
+---
+
+[📋 Disclaimer](#-disclaimer) · [🚀 Why Go?](#-why-go) · [🏗️ Architecture](#-architecture) · [✨ Features](#-features) · [⚙️ Configuration](#-configuration) · [🧪 Testing](#-testing) · [🎬 Demo](#-demo-with-podman-compose) · [📁 Project Structure](#-project-structure)
+
+</div>
+
+---
+
+## 📋 Disclaimer
 
 This project is developed for **educational and research purposes** only. It is intended to provide hands-on experience and deepen knowledge in **Go concurrency patterns**, **load balancing algorithms**, and **network infrastructure design**. It is **not designed** for deployment in production environments or real-world load balancer systems.
 
 The primary focus is to explore **goroutine-based concurrency**, **interface-driven extensibility**, **Clean Architecture patterns**, and **standard library usage** for building network-oriented software, emphasizing developer learning and architectural exploration in a controlled environment.
 
-## Why Go?
+---
+
+## 🚀 Why Go?
 
 Go was chosen as the language for this POC for several deliberate reasons that align with the requirements of network-oriented infrastructure software:
 
-### Performance and Concurrency
+### ⚡ Performance and Concurrency
 
 Go's goroutine-based concurrency model is ideal for a Load Balancer, where the runtime must handle thousands of concurrent connections efficiently. Each incoming request is served by a lightweight goroutine (a few KB of stack, managed by the Go runtime scheduler), allowing the balancer to sustain high throughput without the thread-per-connection overhead of traditional C/Java servers.
 
-### Standard Library as First-Class Infrastructure
+### 📦 Standard Library as First-Class Infrastructure
 
 The `net/http` package provides a production-ready HTTP server with `ReadHeaderTimeout`, graceful shutdown, and context propagation — all without external dependencies. Similarly, `httputil.ReverseProxy` delivers connection pooling, chunked transfer encoding, and WebSocket upgrade support out of the box.
 
-### Single Binary Deployment
+### 🔧 Single Binary Deployment
 
 Go compiles to a static, platform-specific binary. Combined with `CGO_ENABLED=0`, the load balancer produces a single executable with no runtime dependencies, ideal for minimal container images. The multi-stage Dockerfile builds on `golang:1.24-alpine` and runs on a minimal `alpine:latest` base.
 
-### Interface-Driven Extensibility
+### 🧩 Interface-Driven Extensibility
 
 Go's implicit interface satisfaction enables clean abstraction boundaries. The `Balancer` interface allows load balancing algorithms to be swapped without modifying callers. This is foundational to the algorithm engine and the testable architecture design.
 
-## Strengths and Weaknesses
+---
 
-### Strengths
+## 💪 Strengths and Weaknesses
+
+### ✅ Strengths
 
 | Aspect | Detail |
 |---|---|
@@ -49,7 +66,7 @@ Go's implicit interface satisfaction enables clean abstraction boundaries. The `
 | **Cross-compilation** | `GOOS=linux GOARCH=amd64 go build` produces a Linux binary from any development machine, including Windows. |
 | **Pure Go** | Zero CGO dependencies simplifies cross-compilation, container builds, and CI pipelines. |
 
-### Weaknesses / Tradeoffs
+### ⚠️ Weaknesses / Tradeoffs
 
 | Aspect | Detail |
 |---|---|
@@ -60,9 +77,11 @@ Go's implicit interface satisfaction enables clean abstraction boundaries. The `
 | **No dependency injection framework** | All wiring is manual in `main()`. For a POC this is explicit and clear; at scale, tools like `wire` or `fx` reduce boilerplate. |
 | **GC pauses** | Under extreme load (> 100k concurrent connections), garbage collector pauses may introduce latency spikes. |
 
-## Design Decisions
+---
 
-### Clean Architecture (`cmd` / `internal`)
+## 🏗️ Design Decisions
+
+### 🧱 Clean Architecture (`cmd` / `internal`)
 
 The project follows Go community conventions for project layout:
 
@@ -71,7 +90,7 @@ The project follows Go community conventions for project layout:
 
 This structure prevents circular dependencies, enforces clear ownership, and makes the codebase navigable for new contributors.
 
-### Middleware Chain Pattern
+### 🔗 Middleware Chain Pattern
 
 The balancer uses Go's idiomatic middleware pattern:
 
@@ -88,70 +107,135 @@ func Chain(h http.Handler, middlewares ...Middleware) http.Handler {
 
 The request pipeline: **Recovery → RequestID → Logger → Rate Limiter → Load Balancer**. Each middleware is independently testable using `httptest.NewRequest` and `httptest.NewRecorder`.
 
-### Interface-Based Algorithm Engine (Strategy Pattern)
+### 🎯 Interface-Based Algorithm Engine (Strategy Pattern)
 
 All algorithms implement a single `Balancer` interface:
 
 ```go
 type Balancer interface {
-    NextBackend(req *http.Request) (*Backend, error)
+    NextBackend(req *http.Request) (*backend.Backend, error)
 }
 ```
 
 The factory function `NewBalancer()` maps configuration strings to concrete implementations at startup. This avoids reflection-based loading, per-request interface assertions, and configuration parsing on every request. New algorithms can be added without modifying the rest of the system (Open/Closed Principle).
 
-### Thread-Safe Backend Pool
+### 🔒 Thread-Safe Backend Pool
 
 The `BackendPool` uses `sync.RWMutex` for concurrent read access and exclusive writes. Each `Backend` tracks its own state with `sync/atomic` operations:
 
 - `Failures` / `Successes` — atomic counters for health check results
-- `Connections` — atomic gauge for active connections
+- `ActiveConnections` — atomic gauge for active connections
 - `Latency` — atomic storage of last health check latency
+- `Status` — protected by `sync.RWMutex` (HEALTHY/UNHEALTHY)
 
-### Graceful Shutdown
+### 🛑 Graceful Shutdown
 
 Uses `signal.NotifyContext` for `SIGINT`/`SIGTERM` handling. On shutdown, the server stops the health checker, drains in-flight requests, and calls `httpServer.Shutdown()` with a 10-second timeout.
 
-## Architecture
+---
 
-### Component Diagram
+## 🏛️ Architecture
 
+### 📊 Component Diagram
+
+```mermaid
+graph TD
+    Client(["🌐 Client"])
+
+    subgraph "⚖️ GoBalancer"
+        direction TB
+        HTTP["🔌 HTTP Listener"]
+        
+        subgraph "🔄 Middleware Chain"
+            direction TB
+            RC["🛡️ Recovery"]
+            RID["🆔 RequestID"]
+            LOG["📝 Logger"]
+            RL["⏱️ Rate Limiter"]
+        end
+        
+        CORE["🎯 Balancer Core"]
+        HP["💓 Health Manager"]
+        MET["📊 Metrics"]
+    end
+
+    subgraph "📦 Backend Pool"
+        direction LR
+        B1["🟢 API 1"]
+        B2["🟢 API 2"]
+        B3["🟢 API 3"]
+    end
+
+    Client -->|HTTP Request| HTTP
+    HTTP --> RC
+    RC --> RID
+    RID --> LOG
+    LOG --> RL
+    RL --> CORE
+    CORE --> HP
+    CORE --> MET
+    HP --> B1
+    HP --> B2
+    HP --> B3
+    CORE --> B1
+    CORE --> B2
+    CORE --> B3
+
+    style Client fill:#4a9eff,color:#fff,stroke:#2d7dd2
+    style HTTP fill:#ff9800,color:#fff,stroke:#e68900
+    style CORE fill:#e91e63,color:#fff,stroke:#c2185b
+    style HP fill:#4caf50,color:#fff,stroke:#388e3c
+    style MET fill:#9c27b0,color:#fff,stroke:#7b1fa2
+    style B1 fill:#00bcd4,color:#fff,stroke:#0097a7
+    style B2 fill:#00bcd4,color:#fff,stroke:#0097a7
+    style B3 fill:#00bcd4,color:#fff,stroke:#0097a7
+    style RC fill:#f44336,color:#fff,stroke:#d32f2f
+    style RID fill:#ff5722,color:#fff,stroke:#e64a19
+    style LOG fill:#795548,color:#fff,stroke:#5d4037
+    style RL fill:#607d8b,color:#fff,stroke:#455a64
 ```
-                    Cliente
-                       |
-                       v
-               HTTP Listener
-                       |
-               Middleware Chain
-                       |
-              Load Balancer Core
-                       |
-         +-------------+-------------+
-         |                           |
-   Health Manager              Metrics
-         |
-         v
- Backend Pool
- +------+--------+---------+
- v      v        v
-API1   API2    API3
+
+### 🔄 Request Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as 🌐 Client
+    participant RC as 🛡️ Recovery
+    participant RID as 🆔 RequestID
+    participant LOG as 📝 Logger
+    participant RL as ⏱️ Rate Limiter
+    participant LB as ⚖️ Load Balancer
+    participant RP as 🔄 Reverse Proxy
+    participant BE as 🖥️ Backend
+
+    C->>RC: HTTP Request
+    RC->>RID: Pass request
+    RID->>RID: Generate/Read X-Request-ID
+    RID->>LOG: Inject request ID
+    LOG->>LOG: Start timer
+    
+    alt Rate limit exceeded
+        LOG->>RL: Check rate limit
+        RL-->>C: ❌ 429 Too Many Requests
+    else Rate limit OK
+        LOG->>RL: Check rate limit
+        RL->>LB: Forward request
+        LB->>LB: Select backend (algorithm)
+        LB->>RP: Target backend
+        RP->>BE: Proxy request
+        BE-->>RP: Response
+        RP-->>C: ✅ Response
+    end
+    
+    LOG->>LOG: Emit structured JSON log
 ```
 
-### Request Flow
+---
 
-1. **Request arrives** at the HTTP server.
-2. **Global middleware chain** wraps the handler:
-   - **Recovery** — Catches panics and returns 500.
-   - **RequestID** — Generates or forwards `X-Request-ID`.
-   - **Logger** — Emits structured JSON access log on completion.
-   - **Rate Limiter** — Token bucket algorithm, per-IP tracking.
-3. **Load Balancer** selects a backend using the configured algorithm.
-4. **Reverse Proxy** forwards the request to the selected backend via `httputil.ReverseProxy`.
-5. **Health Checker** runs in background goroutine, marking backends as HEALTHY/UNHEALTHY.
+## ✨ Features
 
-## Features
-
-### Load Balancing Algorithms
+### ⚖️ Load Balancing Algorithms
 
 | Algorithm | Description |
 |---|---|
@@ -163,7 +247,7 @@ API1   API2    API3
 
 All algorithms are interchangeable via the `Balancer` interface — add a new one by implementing `NextBackend()`.
 
-### Health Checking
+### 💓 Health Checking
 
 Periodic health checks run in a background goroutine:
 
@@ -172,60 +256,65 @@ Periodic health checks run in a background goroutine:
 - **Auto-recovery** — backends are automatically reincorporated when they respond again
 - **Thread-safe** — uses atomic operations for failure/success counters
 
-### Reverse Proxy
+### 🔄 Reverse Proxy
 
 Built on `httputil.ReverseProxy`. The custom `Director` function injects `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto` headers. Connection pooling, chunked transfer, and WebSocket support are inherited from the standard library.
 
-### Rate Limiting
+### ⏱️ Rate Limiting
 
 Token bucket algorithm with:
 - Per-IP bucket tracking with mutex protection
-- Background eviction goroutine cleaning stale buckets
+- Background eviction goroutine cleaning stale buckets (10-minute idle timeout)
 - Configurable capacity and refill rate
 
-### Admin API
+### 🎛️ Admin API
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/health` | GET | Balancer health status |
-| `/api/backends` | GET | List all backends with status, connections, latency |
-| `/api/stats` | GET | Aggregate stats (total, healthy, unhealthy) |
-| `/api/reload` | POST | Reload configuration without restart |
-| `/metrics` | GET | Prometheus-compatible metrics |
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/health` | GET | ❌ No | Balancer health status |
+| `/api/backends` | GET | ✅ Basic Auth | List all backends with status, connections, latency |
+| `/api/stats` | GET | ✅ Basic Auth | Aggregate stats (total, healthy, unhealthy) |
+| `/api/reload` | POST | ✅ Basic Auth | Reload configuration without restart |
+| `/metrics` | GET | ❌ No | Prometheus-compatible metrics |
 
-### Prometheus-Compatible Metrics
+> **Note:** Admin API endpoints (`/api/backends`, `/api/stats`, `/api/reload`) are protected by Basic Auth when `admin.secret` is configured in the YAML config. If the secret is empty, no authentication is required.
+
+### 📊 Prometheus-Compatible Metrics
 
 Exposed at `/metrics` in text format:
 
-| Metric | Type | Description |
-|---|---|---|
-| `requests_total` | Counter | Total HTTP requests handled |
-| `backend_errors_total` | Counter | Total backend errors |
-| `active_connections` | Gauge | Active connections across all backends |
-| `healthy_backends` | Gauge | Number of healthy backends |
-| `unhealthy_backends` | Gauge | Number of unhealthy backends |
-| `backend_latency_ms` | Gauge | Last health check latency per backend |
-| `backend_active_connections` | Gauge | Active connections per backend |
+| Metric | Type | Labels | Description |
+|---|---|---|---|
+| `requests_total` | Counter | — | Total HTTP requests handled |
+| `backend_errors_total` | Counter | — | Total backend errors |
+| `active_connections` | Gauge | — | Active connections across all backends |
+| `healthy_backends` | Gauge | — | Number of healthy backends |
+| `unhealthy_backends` | Gauge | — | Number of unhealthy backends |
+| `backend_latency_ms` | Gauge | `backend`, `url` | Last health check latency per backend |
+| `backend_active_connections` | Gauge | `backend`, `url` | Active connections per backend |
 
-### Structured Logging
+### 📝 Structured Logging
 
 JSON-structured logging with request ID correlation. Logs include method, path, client IP, status code, latency, backend ID, and matched route metadata.
 
-### Dynamic Configuration Reload
+### 🔄 Dynamic Configuration Reload
 
 Modify the YAML config and call `POST /api/reload` — the balancer picks up new backends, algorithm changes, and health check settings without restarting.
 
-### Graceful Shutdown
+### 🛑 Graceful Shutdown
 
 Handles `SIGINT`/`SIGTERM` signals. On shutdown, the health checker stops, in-flight requests drain, and the HTTP server shuts down cleanly with a 10-second timeout.
 
-## Configuration
+---
 
-### Configuration Reference
+## ⚙️ Configuration
+
+### 📄 Configuration Reference
 
 ```yaml
 server:
-  port: 8080                    # Listen port
+  port: 8080                    # Listen port (1-65535)
+  logLevel: info                # Log level: debug | info | warn | error
 
 loadBalancer:
   algorithm: round-robin        # round-robin | least-connections | weighted | random | ip-hash
@@ -234,6 +323,15 @@ healthCheck:
   interval: 5s                  # Health check interval
   timeout: 2s                   # Health check timeout
   maxFailures: 3                # Failures before marking UNHEALTHY
+
+rateLimit:
+  rate: 5000                    # Requests per second refill rate
+  capacity: 10000               # Maximum burst capacity
+  enabled: true                 # Enable/disable rate limiting
+  trustForwardedHeaders: false  # Trust X-Forwarded-For / X-Real-IP headers
+
+admin:
+  secret: ""                    # Basic Auth password for admin API (empty = no auth)
 
 backends:
   - url: http://localhost:9001  # Backend URL
@@ -244,7 +342,7 @@ backends:
     weight: 1
 ```
 
-### Supported Algorithms
+### 🔧 Supported Algorithms
 
 | Config Value | Aliases |
 |---|---|
@@ -254,9 +352,11 @@ backends:
 | `random` | — |
 | `ip-hash` | `iphash` |
 
-## Testing
+---
 
-### Run all tests
+## 🧪 Testing
+
+### ▶️ Run all tests
 
 ```bash
 rake test
@@ -264,7 +364,7 @@ rake test
 
 Runs unit and integration tests with coverage (enforcing a **98% minimum coverage threshold**), E2E integration tests, and **race condition detection** via `go test -race` on both suites.
 
-### Run race detector checks
+### 🏃 Run race detector checks
 
 ```bash
 rake test:race
@@ -272,34 +372,36 @@ rake test:race
 
 Runs unit and E2E suites with the Go race detector enabled to catch data races in the concurrent code paths.
 
-### Run E2E tests
+### 🔬 Run E2E tests
 
 The `rake test` task runs the end-to-end integration tests using the Podman socket (DOCKER_HOST) inside a containerized Go environment.
 
-### Build binary
+### 🔨 Build binary
 
 ```bash
 rake build
 ```
 
-### Clean artifacts
+### 🧹 Clean artifacts
 
 ```bash
 rake clean
 ```
 
-## Demo with Podman-Compose
+---
+
+## 🎬 Demo with Podman-Compose
 
 Interactive demonstration of the L7 Load Balancer running in containers, showcasing Go concurrency patterns and goroutine efficiency.
 
-### Quick start
+### 🚀 Quick start
 
 ```bash
 rake demo          # Build + start + run interactive demo
 rake demo:stop     # Stop and remove containers
 ```
 
-### Demo phases
+### 📋 Demo phases
 
 1. **Round Robin**: Cyclic distribution across 3 backends (1→2→3→1...)
 2. **Weighted Round Robin**: Proportional distribution (weight 5:3:1)
@@ -307,30 +409,35 @@ rake demo:stop     # Stop and remove containers
 4. **Metrics**: Prometheus-compatible metrics and admin API
 5. **Why Go?**: Goroutines vs threads comparison
 
-### Architecture
+### 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     PODMAN NETWORK                              │
-│                   gobal-network (bridge)                        │
-│                                                                  │
-│   ┌──────────────┐                                              │
-│   │  gobalancer   │ :8080                                       │
-│   │   (Go 1.24)   │                                             │
-│   │   ~15MB       │                                             │
-│   └──────┬───────┘                                              │
-│          │                                                      │
-│          ├──────────────────┬──────────────────┐                 │
-│          ▼                  ▼                  ▼                 │
-│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐           │
-│   │  backend-1   │ │  backend-2   │ │  backend-3   │           │
-│   │  nginx:80    │ │  nginx:80    │ │  nginx:80    │           │
-│   │  weight: 5   │ │  weight: 3   │ │  weight: 1   │           │
-│   └──────────────┘ └──────────────┘ └──────────────┘           │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "🐳 Podman Network: gobal-network"
+        direction TB
+        LB["⚖️ gobalancer<br/>:8080<br/>~15MB<br/>Go 1.24"]
+        
+        subgraph "📦 Backend Pool"
+            direction LR
+            B1["🌐 backend-1<br/>nginx:80<br/>weight: 5"]
+            B2["🌐 backend-2<br/>nginx:80<br/>weight: 3"]
+            B3["🌐 backend-3<br/>nginx:80<br/>weight: 1"]
+        end
+    end
+
+    LB -->|"🔄 Round Robin"| B1
+    LB -->|"🔄 Round Robin"| B2
+    LB -->|"🔄 Round Robin"| B3
+
+    style LB fill:#e91e63,color:#fff,stroke:#c2185b
+    style B1 fill:#00bcd4,color:#fff,stroke:#0097a7
+    style B2 fill:#00bcd4,color:#fff,stroke:#0097a7
+    style B3 fill:#00bcd4,color:#fff,stroke:#0097a7
 ```
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
 .
@@ -340,10 +447,13 @@ rake demo:stop     # Stop and remove containers
 ├── internal/
 │   ├── api/
 │   │   ├── handler.go              # Admin API handlers (backends, stats, reload, health)
-│   │   └── handler_test.go
+│   │   ├── handler_test.go
+│   │   └── handler_extra_test.go
 │   ├── backend/
 │   │   ├── backend.go              # Backend model (atomic counters, status)
 │   │   ├── pool.go                 # Thread-safe BackendPool
+│   │   ├── backend_test.go
+│   │   ├── backend_extra_test.go
 │   │   └── pool_test.go
 │   ├── balancer/
 │   │   ├── balancer.go             # Balancer interface + factory
@@ -352,13 +462,20 @@ rake demo:stop     # Stop and remove containers
 │   │   ├── weighted.go             # Weighted Round Robin algorithm
 │   │   ├── random.go               # Random algorithm
 │   │   ├── ip_hash.go              # IP Hash algorithm
-│   │   └── balancer_test.go
+│   │   ├── balancer_test.go
+│   │   ├── balancer_extra_test.go
+│   │   └── random_factory_test.go
 │   ├── config/
 │   │   ├── config.go               # YAML config loader
-│   │   └── config_test.go
+│   │   ├── config_test.go
+│   │   └── config_extra_test.go
 │   ├── health/
 │   │   ├── checker.go              # Periodic health checker
-│   │   └── checker_test.go
+│   │   ├── checker_test.go
+│   │   └── checker_extra_test.go
+│   ├── httputil/
+│   │   ├── httputil.go             # HTTP utilities (GetClientIP)
+│   │   └── httputil_test.go
 │   ├── logger/
 │   │   ├── logger.go               # Structured JSON logger
 │   │   └── logger_test.go
@@ -371,7 +488,9 @@ rake demo:stop     # Stop and remove containers
 │   │   ├── request_id.go           # X-Request-ID generation
 │   │   ├── logger.go               # Request logging
 │   │   ├── rate_limiter.go         # Token bucket rate limiter
-│   │   └── middleware_test.go
+│   │   ├── middleware_test.go
+│   │   ├── middleware_extra_test.go
+│   │   └── middleware_logger_test.go
 │   └── proxy/
 │       ├── proxy.go                # Reverse proxy wrapper
 │       └── proxy_test.go
@@ -393,14 +512,26 @@ rake demo:stop     # Stop and remove containers
 │   └── config.yaml                 # Default configuration
 ├── test/
 │   └── e2e/
-│       └── e2e_test.go             # End-to-end integration tests
-├── Dockerfile                       # Multi-stage container build
-├── Rakefile                         # Build automation (test, build, clean, demo)
-├── go.mod                           # Go 1.24 module definition
-└── LICENSE                          # MIT
+│       ├── e2e_test.go             # E2E test suite entry
+│       ├── e2e_balancers_test.go   # E2E balancer algorithm tests
+│       ├── e2e_middleware_test.go  # E2E middleware tests
+│       ├── e2e_admin_metrics_test.go # E2E admin/metrics tests
+│       ├── e2e_resilience_test.go  # E2E resilience tests
+│       └── harness_test.go         # E2E test harness/helpers
+├── .editorconfig                   # Editor configuration
+├── .gitignore                      # Git ignore rules
+├── Dockerfile                      # Multi-stage container build
+├── Rakefile                        # Build automation (test, build, clean, demo)
+├── go.mod                          # Go 1.24 module definition
+├── go.sum                          # Go dependency checksums
+├── LICENSE                         # MIT
+├── MEDIUM_ARTICLE.md               # Full article about the project
+└── README.md                       # This file
 ```
 
-## Reproduce Results
+---
+
+## 🔄 Reproduce Results
 
 ```bash
 # Run tests with coverage
@@ -416,7 +547,9 @@ rake build
 rake clean
 ```
 
-## License
+---
+
+## 📄 License
 
 This is a Proof of Concept. Not intended for production use.
 
@@ -453,3 +586,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+---
+
+<div align="center">
+
+**Built with ❤️ using Go 1.24**
+
+[⬆️ Back to Top](#-gobalancer--l7-load-balancer-poc)
+
+</div>
