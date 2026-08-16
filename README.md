@@ -27,6 +27,10 @@ The primary focus is to explore **goroutine-based concurrency**, **interface-dri
 
 ---
 
+## More Details 📝
+
+For comprehensive information about this project, check out this [Medium article](https://medium.com/@sanchezsanchezsergio418/how-i-built-an-l7-load-balancer-in-go-algorithms-failover-and-the-complexity-of-shared-state-c00fcaa765dd).
+
 ## 🚀 Why Go?
 
 Go was chosen as the language for this POC for several deliberate reasons that align with the requirements of network-oriented infrastructure software:
